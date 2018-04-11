@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="translate_to_y">300dp</dimen>
+    <dimen name="translate_to_x">100dp</dimen>
+
+    <dimen name="translate_scale_to_y">-5dp</dimen>
+    <integer name="duration_time">300</integer>
+</resources>
