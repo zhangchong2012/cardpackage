@@ -8,7 +8,8 @@ public class CardViewTag {
     //最初的高度
     private int originalHeight;
 
-    private int originalPadding;
+    //最后的paddingbottoms
+    private int originalPaddingBottom;
 
     public int getOriginalHeight() {
         return originalHeight;
@@ -18,11 +19,11 @@ public class CardViewTag {
         this.originalHeight = originalHeight;
     }
 
-    public int getOriginalPadding() {
-        return originalPadding;
+    public int getOriginalPaddingBottom() {
+        return originalPaddingBottom;
     }
 
-    public void setOriginalPadding(int originalPadding) {
-        this.originalPadding = originalPadding;
+    public void setOriginalPaddingBottom(int originalPaddingBottom) {
+        this.originalPaddingBottom = originalPaddingBottom;
     }
 }
