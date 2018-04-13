@@ -25,6 +25,7 @@ public class DialogCaptureLayout extends FrameLayout {
 
     private void initCaptureView(){
         mCaptureView= new ImageView(getContext());
+        mCaptureView.setScaleType(ImageView.ScaleType.FIT_XY);
         LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         this.addView(mCaptureView, params);
         mCaptureView.setVisibility(View.GONE);
@@ -46,19 +47,23 @@ public class DialogCaptureLayout extends FrameLayout {
         long startTime = System.currentTimeMillis();
         Log.v("msg", "start time:" +  startTime);
         //mContentView.setDrawingCacheEnabled(true);
-        //mContentView.setDrawingCacheQuality(DRAWING_CACHE_QUALITY_LOW);
         //mContentView.buildDrawingCache();
-        //mCaputreBMP  = mContentView.getDrawingCache();
-        //mContentView.setDrawingCacheEnabled(false);
-
+        //final Bitmap bitmap  = mContentView.getDrawingCache();
+        //if (bitmap != null) {
+        //    mCaputreBMP = Bitmap.createBitmap(bitmap);
+        //    mContentView.setDrawingCacheEnabled(false);
+        //} else {
+        //    mCaputreBMP = null;
+        //}
 
         mCaputreBMP = Bitmap.createBitmap(mContentView.getWidth(), mContentView.getHeight(), Bitmap.Config.RGB_565);
         final Canvas canvas = new Canvas(mCaputreBMP);
         mContentView.draw(canvas);
 
         mCaptureView.setImageBitmap(mCaputreBMP);
-        //Log.v("msg", "duration time:" +  (System.currentTimeMillis() - startTime)
-        //+ ", bitmp size:" + mCaputreBMP.getWidth() * mCaputreBMP.getHeight() * 2/1024 + "kb");
+
+        Log.v("msg", "duration time:" +  (System.currentTimeMillis() - startTime)
+        + ", bitmp size:" + mCaputreBMP.getWidth() * mCaputreBMP.getHeight() * 2/1024 + "kb");
     }
 
     public void onDestroy(){

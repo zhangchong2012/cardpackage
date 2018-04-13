@@ -23,12 +23,6 @@ public class CardPackageHelper {
         ValueAnimator animator = ValueAnimator.ofFloat(0, 1.0f);
         final int max = (parentView).getChildCount();
 
-        //对其最后一个view的高度.
-        final Rect rectLast = new Rect();
-        if (max > 1) {
-            ViewGroup lastView = (ViewGroup) (parentView).getChildAt(max - 1);
-            lastView.getChildAt(0).getLocalVisibleRect(rectLast);
-        }
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationCancel(Animator animation) {

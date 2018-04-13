@@ -22,7 +22,7 @@ public class DialogAnimationLayout extends FrameLayout {
     public static final int MAX_CARD_VIEW = 3;
     private int mAppearHeight = 600;
     private LayoutTransition mTransition;
-    private List<View> mPackageViews = new ArrayList<>();
+    private List<DialogCaptureLayout> mPackageViews = new ArrayList<>();
     private DialogLayoutListener mListener;
     private ValueAnimator mZoomAnimator;
 
@@ -88,14 +88,13 @@ public class DialogAnimationLayout extends FrameLayout {
             }
 
             @Override
-            public void endTransition(LayoutTransition transition, ViewGroup container,
+            public void endTransition(final LayoutTransition transition, ViewGroup container,
                 final View view, final int transitionType) {
                 post(new Runnable() {
                     @Override
                     public void run() {
                         //最后一个view截图
                         //captureLastView();
-
                         stopZoomAnimation();
                         mZoomAnimator = continueAnimation(view, transitionType);
                     }
@@ -128,6 +127,7 @@ public class DialogAnimationLayout extends FrameLayout {
                     new CardControllerListener(CardControllerListener.TYPE_ADD));
                 break;
             case LayoutTransition.DISAPPEARING:
+                showLastViewContent();
                 addToFirstChild();
                 if(hashCache()) {
                     animator = CardPackageHelper.magnifyCards(DialogAnimationLayout.this, new CardControllerListener(CardControllerListener.TYPE_DEL));
@@ -149,11 +149,11 @@ public class DialogAnimationLayout extends FrameLayout {
             .setDuration(CardPackageHelper.DURATION_LAYOUT_DISMISS);
     }
 
-    public List<View> getPackageViews() {
+    public List<DialogCaptureLayout> getPackageViews() {
         return mPackageViews;
     }
 
-    public void setPackageViews(List<View> packageViews) {
+    public void setPackageViews(List<DialogCaptureLayout> packageViews) {
         this.mPackageViews = packageViews;
     }
 
@@ -172,15 +172,16 @@ public class DialogAnimationLayout extends FrameLayout {
         int height = (int) (Math.random() * 200) + 400;
         FrameLayout.LayoutParams params =
             new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height);
-        view.setPadding(0, paddingTop, 0, 0);
+        DialogCaptureLayout layout = prepareCaptureView(view);
+        layout.setPadding(0, paddingTop, 0, 0);
 
-        //showLastViewCapture();
+        //将当前最后一个页面的截图显示
+        captureLastView();
+        showLastViewCapture();
 
         //添加截图view
-        //DialogCaptureLayout layout = prepareCaptureView(view);
-
-        mPackageViews.add(view);
-        addView(view, params);
+        mPackageViews.add(layout);
+        addView(layout, params);
     }
 
     private DialogCaptureLayout prepareCaptureView(View view){
@@ -189,19 +190,20 @@ public class DialogAnimationLayout extends FrameLayout {
         return layout;
     }
 
-    //private void showLastViewCapture(){
-    //    if(mPackageViews.size() == 0)
-    //        return;
-    //    DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
-    //    layout.showCaptureView();
-    //}
-    //
-    //private void captureLastView(){
-    //    if(mPackageViews.size() == 0)
-    //        return;
-    //    DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
-    //    layout.captureChacheBitmap();
-    //}
+    //插入新卡片之前,截图最前面的view.
+    private void showLastViewCapture(){
+        if(mPackageViews.size() == 0)
+            return;
+        DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
+        layout.showCaptureView();
+    }
+
+    private void captureLastView(){
+        if(mPackageViews.size() == 0)
+            return;
+        DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
+        layout.captureChacheBitmap();
+    }
 
     public boolean hashCache(){
         return mPackageViews.size() > 0;
@@ -220,6 +222,15 @@ public class DialogAnimationLayout extends FrameLayout {
         if (mPackageViews.size() > 0) {
             mPackageViews.remove(mPackageViews.size() - 1);
         }
+    }
+
+    private void showLastViewContent(){
+        if (mPackageViews.size() == 0) {
+            return;
+        }
+
+        DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
+        layout.showContentView();
     }
 
     public void resume(){
