@@ -5,11 +5,20 @@ package com.example.zhangchong.myapplication;
  */
 
 public class CardViewTag {
+    private String mViewId;
+
     //最初的高度
     private int originalHeight;
 
-    //最后的paddingbottoms
     private int originalPaddingBottom;
+    private int originalPaddingRight;
+    private int originalPaddingLeft;
+    private int originalPaddingTop;
+
+    private int mRemoveIndex;
+
+    public CardViewTag() {
+    }
 
     public int getOriginalHeight() {
         return originalHeight;
@@ -19,11 +28,43 @@ public class CardViewTag {
         this.originalHeight = originalHeight;
     }
 
+
     public int getOriginalPaddingBottom() {
         return originalPaddingBottom;
     }
 
-    public void setOriginalPaddingBottom(int originalPaddingBottom) {
-        this.originalPaddingBottom = originalPaddingBottom;
+    public int getOriginalPaddingTop() {
+        return originalPaddingTop;
+    }
+
+    public int getOriginalPaddingRight() {
+        return originalPaddingRight;
+    }
+
+    public int getOriginalPaddingLeft() {
+        return originalPaddingLeft;
+    }
+
+    public void setOriginalPaddingBottom(int left, int top, int right, int bottom) {
+        this.originalPaddingTop = top;
+        this.originalPaddingLeft = left;
+        this.originalPaddingRight = right;
+        this.originalPaddingBottom = bottom;
+    }
+
+    public String getViewId() {
+        return mViewId;
+    }
+
+    public void setViewId(String viewId) {
+        this.mViewId = viewId;
+    }
+
+    public int getRemoveIndex() {
+        return mRemoveIndex;
+    }
+
+    public void setRemoveIndex(int removeIndex) {
+        this.mRemoveIndex = removeIndex;
     }
 }

@@ -21,14 +21,21 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:onClick="startAnimation"
-            android:text="startToEnd" />
+            android:text="ADD" />
 
         <Button
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
             android:onClick="endAnimation"
-            android:text="endToStart" />
+            android:text="REMOVE" />
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:onClick="randomRemove"
+            android:text="REMOVE_RANDOM" />
     </LinearLayout>
 
     <com.example.zhangchong.myapplication.DialogAnimationLayout

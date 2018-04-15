@@ -28,12 +28,14 @@ public class CardPackageHelper {
             public void onAnimationCancel(Animator animation) {
                 super.onAnimationCancel(animation);
                 if (listener != null) listener.onAnimationEnd();
+                updateViewTag(parentView);
             }
 
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 if (listener != null) listener.onAnimationEnd();
+                updateViewTag(parentView);
             }
         });
 
@@ -68,18 +70,18 @@ public class CardPackageHelper {
                 //超过3个卡片.才移动paddingtop
                 top = (int) (index * paddingStep - paddingStep * value);
             }
-            Log.e("msg", "l,t,r,b:"
-                + left
-                + ", "
-                + top
-                + ", "
-                + right
-                + ", "
-                + bottom
-                + ", index:"
-                + index
-                + ", diff:"
-                + diff);
+            //Log.e("msg", "l,t,r,b:"
+            //    + left
+            //    + ", "
+            //    + top
+            //    + ", "
+            //    + right
+            //    + ", "
+            //    + bottom
+            //    + ", index:"
+            //    + index
+            //    + ", diff:"
+            //    + diff);
             child.setPadding(left, top, right, bottom);
             if(child == null)
                 return;
@@ -92,7 +94,7 @@ public class CardPackageHelper {
                 child.requestLayout();
 
 
-                Log.e("msg", "child.getLayoutParams().height:" + child.getLayoutParams().height);
+                //Log.e("msg", "child.getLayoutParams().height:" + child.getLayoutParams().height);
                 //缩放高度
                 //float scale = 1 - (0.5f * value);
                 //(((ViewGroup)child).getChildAt(0)).setScaleY(scale);
@@ -102,25 +104,42 @@ public class CardPackageHelper {
     }
 
     private static void calculateZoomBig(ValueAnimator animation, FrameLayout parentView, int max,
-        int paddingStep) {
+        int removeIndex, int paddingStep) {
         float value = (float) animation.getAnimatedValue();
+
+        int scaleMax = max;
+        if(removeIndex + 1  < max
+            && max == DialogAnimationLayout.MAX_CARD_VIEW){
+            //删除的不是最后一个.
+            scaleMax = removeIndex + 1;
+        }
 
         int index = 0;
         //要移动的总数
-        while (index < max) {
+        while (index < scaleMax) {
             int diff = max - index;
-            int left = (int) (diff * paddingStep * 2 - paddingStep * 2 * value);
-            int right = (int) (diff * paddingStep * 2 - paddingStep * 2 * value);
-            int bottom = (int) (diff * paddingStep - paddingStep * value);
-
             View child = parentView.getChildAt(index);
+            if(child == null)
+                return;
+            CardViewTag tag = (CardViewTag) child.getTag();
+
+            //int left = (int) (diff * paddingStep * 2 - paddingStep * 2 * value);
+            //int right = (int) (diff * paddingStep * 2 - paddingStep * 2 * value);
+            //int bottom = (int) (diff * paddingStep - paddingStep * value);
+
+            //两边padding最终是diff-1 * paddingstep*2
+            //公式 目标数值 = 当前值 + (目标值 - 当前值) * percent
+            int left = (int)(tag.getOriginalPaddingLeft() + ((diff - 1) * paddingStep * 2 - tag.getOriginalPaddingLeft())*value);
+            int right = left;
+            int bottom = (int)(tag.getOriginalPaddingBottom() + ((diff - 1) * paddingStep - tag.getOriginalPaddingBottom())*value);
+
 
             int top = (int) ((index - 1) * paddingStep + paddingStep * value);
             if (max < DialogAnimationLayout.MAX_CARD_VIEW) {
                 //小于3个卡片.不移动paddingtop
-                top = index * paddingStep;
+                top = (int)(tag.getOriginalPaddingTop() + (index * paddingStep - tag.getOriginalPaddingTop())*value);
             }
-            Log.e("msg", "l,t,r,b:"
+            Log.e("msg", "index:" + index + ", l,t,r,b:"
                 + left
                 + ", "
                 + top
@@ -128,15 +147,12 @@ public class CardPackageHelper {
                 + right
                 + ", "
                 + bottom);
-            if(child == null)
-                return;
             child.setPadding(left, top, right, bottom);
 
-            CardViewTag tag = (CardViewTag) child.getTag();
             if (index == max - 1 && //只回弹最上面的view
                 tag != null && tag.getOriginalHeight() > child.getHeight()) {
                 child.getLayoutParams().height =
-                    child.getHeight() + (int) ((tag.getOriginalHeight()
+                    child.getMeasuredHeight() + (int) ((tag.getOriginalHeight()
                         - child.getMeasuredHeight()) * value);
                 child.requestLayout();
 
@@ -148,7 +164,7 @@ public class CardPackageHelper {
         }
     }
 
-    public static ValueAnimator magnifyCards(final FrameLayout parentView,
+    public static ValueAnimator magnifyCards(final FrameLayout parentView, final int moveMax,
         final CardDisplayAnimationListener listener) {
         ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
         animator.addListener(new AnimatorListenerAdapter() {
@@ -159,6 +175,8 @@ public class CardPackageHelper {
                     return;
                 }
                 listener.onAnimationEnd();
+                updateViewTag(parentView);
+
             }
 
             @Override
@@ -168,6 +186,8 @@ public class CardPackageHelper {
                     return;
                 }
                 listener.onAnimationEnd();
+                updateViewTag(parentView);
+
             }
         });
         final int max = parentView.getChildCount();
@@ -175,12 +195,30 @@ public class CardPackageHelper {
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
-                calculateZoomBig(animation, parentView, max, PADDING_STEP);
+                calculateZoomBig(animation, parentView, max, moveMax, PADDING_STEP);
             }
         });
         animator.setDuration(DURATION_LAYOUT_DISMISS);
         animator.start();
         return animator;
+    }
+
+    private static void updateViewTag(FrameLayout parentView){
+        if(parentView == null)
+            return;
+        for (int i = 0; i < parentView.getChildCount(); i++) {
+            View view = parentView.getChildAt(i);
+            CardViewTag tag = (CardViewTag) view.getTag();
+            if(tag == null){
+                tag = new CardViewTag();
+            }
+            tag.setOriginalPaddingBottom(
+                view.getPaddingLeft(),
+                view.getPaddingTop(),
+                view.getPaddingRight(),
+                view.getPaddingBottom()
+            );
+        }
     }
 
     @FunctionalInterface

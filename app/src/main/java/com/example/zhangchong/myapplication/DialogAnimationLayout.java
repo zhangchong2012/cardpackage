@@ -7,7 +7,9 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -22,7 +24,7 @@ public class DialogAnimationLayout extends FrameLayout {
     public static final int MAX_CARD_VIEW = 3;
     private int mAppearHeight = 600;
     private LayoutTransition mTransition;
-    private List<DialogCaptureLayout> mPackageViews = new ArrayList<>();
+    private List<View> mPackageViews = new ArrayList<>();
     private DialogLayoutListener mListener;
     private ValueAnimator mZoomAnimator;
 
@@ -99,7 +101,7 @@ public class DialogAnimationLayout extends FrameLayout {
                         mZoomAnimator = continueAnimation(view, transitionType);
                     }
                 });
-                if(mListener != null){
+                if (mListener != null) {
                     mListener.onAnimationEnd();
                 }
             }
@@ -117,24 +119,55 @@ public class DialogAnimationLayout extends FrameLayout {
 
     private ValueAnimator continueAnimation(View view, int transitionType) {
         ValueAnimator animator = null;
+        CardViewTag tag = (CardViewTag) view.getTag();
+
         switch (transitionType) {
             case LayoutTransition.APPEARING:
                 int viewHeight = view.getHeight();
-                CardViewTag tag = new CardViewTag();
+                if (tag == null) {
+                    tag = new CardViewTag();
+                }
                 tag.setOriginalHeight(viewHeight);
                 view.setTag(tag);
                 animator = CardPackageHelper.shrinkCards(DialogAnimationLayout.this, viewHeight,
                     new CardControllerListener(CardControllerListener.TYPE_ADD));
                 break;
             case LayoutTransition.DISAPPEARING:
-                showLastViewContent();
-                addToFirstChild();
-                if(hashCache()) {
-                    animator = CardPackageHelper.magnifyCards(DialogAnimationLayout.this, new CardControllerListener(CardControllerListener.TYPE_DEL));
+                int removeIndex = tag.getRemoveIndex();
+                if(tag  == null
+                    //条件1:多余3张卡片的时候删除.
+                    || (removeIndex == MAX_CARD_VIEW - 1 && mPackageViews.size() >= MAX_CARD_VIEW)
+                    //条件2:不足3张卡片的时候删除
+                    || removeIndex == mPackageViews.size()){
+                    animator = continueRemoveNewView();
+                }else{
+                    animator = continueRemoveOtherView(removeIndex);
                 }
                 break;
             default:
                 break;
+        }
+        return animator;
+    }
+
+
+    private ValueAnimator continueRemoveOtherView(int max){
+        addToFirstChild();
+        ValueAnimator animator = null;
+        if (hashCache()) {
+            animator = CardPackageHelper.magnifyCards(DialogAnimationLayout.this, max,
+                new CardControllerListener(CardControllerListener.TYPE_DEL));
+        }
+        return animator;
+    }
+
+    //删除最新的view,添加最后一个view
+    private ValueAnimator continueRemoveNewView(){
+        addToFirstChild();
+        ValueAnimator animator = null;
+        if (hashCache()) {
+            animator = CardPackageHelper.magnifyCards(DialogAnimationLayout.this, getChildCount(),
+                new CardControllerListener(CardControllerListener.TYPE_DEL));
         }
         return animator;
     }
@@ -149,11 +182,11 @@ public class DialogAnimationLayout extends FrameLayout {
             .setDuration(CardPackageHelper.DURATION_LAYOUT_DISMISS);
     }
 
-    public List<DialogCaptureLayout> getPackageViews() {
+    public List<View> getPackageViews() {
         return mPackageViews;
     }
 
-    public void setPackageViews(List<DialogCaptureLayout> packageViews) {
+    public void setPackageViews(List<View> packageViews) {
         this.mPackageViews = packageViews;
     }
 
@@ -168,20 +201,58 @@ public class DialogAnimationLayout extends FrameLayout {
     public void addNewView(View view) {
         initLayoutTransition();
         int index = getChildCount();
+        //最大的top就是(卡片数量-1)*step
+        index = index < MAX_CARD_VIEW - 1? index : MAX_CARD_VIEW -1;
         int paddingTop = CardPackageHelper.PADDING_STEP * index;
         int height = (int) (Math.random() * 200) + 400;
         FrameLayout.LayoutParams params =
             new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height);
-        DialogCaptureLayout layout = prepareCaptureView(view);
-        layout.setPadding(0, paddingTop, 0, 0);
+        //       DialogCaptureLayout layout = prepareCaptureView(view);
+        view.setPadding(0, paddingTop, 0, 0);
 
         //将当前最后一个页面的截图显示
-        captureLastView();
-        showLastViewCapture();
+        //       captureLastView();
+        //       showLastViewCapture();
 
         //添加截图view
-        mPackageViews.add(layout);
-        addView(layout, params);
+        mPackageViews.add(view);
+        addView(view, params);
+    }
+
+    private boolean isCurrentInDisplay(int index) {
+        if (index < 0){
+            return false;
+        }
+        //如果当前展示不足三张卡片
+        if (mPackageViews.size() <= MAX_CARD_VIEW && index < mPackageViews.size()) {
+            return true;
+        } else if (index > mPackageViews.size() - 1 - MAX_CARD_VIEW) {
+            return true;
+        }
+        return false;
+    }
+
+    public void removeChildAtIndex(int index) {
+        //如果正在展示
+        if (isCurrentInDisplay(index)) {
+            // 最后一张卡片
+            if (index == mPackageViews.size() - 1) {
+                removeNewChild();
+            } else {
+                initLayoutTransition();
+                if (getChildCount() > 0) {
+                    stopZoomAnimation();
+                    if (index >= 0 && index < mPackageViews.size()) {
+                        int displayIndex = mPackageViews.size() - index - 1;
+                        View view = mPackageViews.remove(index);
+                        removeViewWithTag(view, displayIndex);
+                    }
+                }
+            }
+        } else if (index >= 0 && index < mPackageViews.size()) {
+            //如果不在展示
+            mPackageViews.remove(index);
+        }
     }
 
     private DialogCaptureLayout prepareCaptureView(View view){
@@ -191,25 +262,27 @@ public class DialogAnimationLayout extends FrameLayout {
     }
 
     //插入新卡片之前,截图最前面的view.
-    private void showLastViewCapture(){
-        if(mPackageViews.size() == 0)
+    private void showLastViewCapture() {
+        if (mPackageViews.size() == 0) {
             return;
-        DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
-        layout.showCaptureView();
+        }
+        //DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
+        //layout.showCaptureView();
     }
 
-    private void captureLastView(){
-        if(mPackageViews.size() == 0)
+    private void captureLastView() {
+        if (mPackageViews.size() == 0){
             return;
-        DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
-        layout.captureChacheBitmap();
+        }
+        //DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
+        //layout.captureChacheBitmap();
     }
 
-    public boolean hashCache(){
+    public boolean hashCache() {
         return mPackageViews.size() > 0;
     }
 
-    public void setListener(DialogLayoutListener listener){
+    public void setListener(DialogLayoutListener listener) {
         mListener = listener;
     }
 
@@ -217,42 +290,66 @@ public class DialogAnimationLayout extends FrameLayout {
         initLayoutTransition();
         if (getChildCount() > 0) {
             stopZoomAnimation();
-            removeViewAt(getChildCount() - 1);
-        }
-        if (mPackageViews.size() > 0) {
-            mPackageViews.remove(mPackageViews.size() - 1);
+            if (mPackageViews.size() > 0) {
+                View view = mPackageViews.remove(mPackageViews.size() - 1);
+                removeViewWithTag(view, getChildCount() - 1);
+            }
         }
     }
 
-    private void showLastViewContent(){
+    /**
+     * 删除view
+     * @param view
+     * @param displayIndex: view在parent的位置.
+     */
+    private void removeViewWithTag(View view, int displayIndex) {
+        if (view == null){
+            return;
+        }
+
+        CardViewTag tag = (CardViewTag)view.getTag();
+        if(tag == null){
+            tag = new CardViewTag();
+        }
+        tag.setRemoveIndex(displayIndex);
+        removeView(view);
+    }
+
+    private void showLastViewContent() {
         if (mPackageViews.size() == 0) {
             return;
         }
 
-        DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
-        layout.showContentView();
+        //DialogCaptureLayout layout = mPackageViews.get(mPackageViews.size() - 1);
+        //layout.showContentView();
     }
 
-    public void resume(){
+    public void resume() {
 
     }
 
+    //从卡片包中取出一个view添加到展示页面
     public void addToFirstChild() {
-        if (mPackageViews.size() - 1 - getChildCount() < 0) {
+        //不足不添加
+        if (mPackageViews.size() < MAX_CARD_VIEW) return;
+
+        int index = mPackageViews.size() - 1 - getChildCount();
+        Log.e("msg", "get view inex:"
+            + index
+            + ", total view: "
+            + mPackageViews.size()
+            + ", last View Is :"
+            + getChildCount());
+        if (index < 0) {
             return;
         }
         //卡片夹有多余的卡片
 
         clearLayoutTransition();
-        View view = mPackageViews.get(mPackageViews.size() - 1 - getChildCount());
+        View view = mPackageViews.get(index);
         int left = MAX_CARD_VIEW * CardPackageHelper.PADDING_STEP;
         int right = MAX_CARD_VIEW * CardPackageHelper.PADDING_STEP;
-        int bottom = 0;
-        CardViewTag tag = (CardViewTag) view.getTag();
-        if (tag != null) {
-            bottom = tag.getOriginalPaddingBottom();
-        }
-        view.setPadding(left, 0, right, bottom);
+        view.setPadding(left, 0, right, 0);
 
         FrameLayout.LayoutParams params =
             new FrameLayout.LayoutParams(view.getWidth(), view.getHeight());
@@ -263,7 +360,7 @@ public class DialogAnimationLayout extends FrameLayout {
         clearLayoutTransition();
         if (getChildCount() > 0) {
             stopZoomAnimation();
-            removeViewAt(0);
+            removeViewWithTag(getChildAt(0), 0);
         }
     }
 
@@ -281,19 +378,19 @@ public class DialogAnimationLayout extends FrameLayout {
         public void onAnimationEnd() {
             switch (mType) {
                 case TYPE_DEL:
-                    showFirstChild();
+                    onRemoveAnimationEnd();
                     break;
                 default:
-                    removeFirstChild();
+                    onAddAnimationEnd();
                     break;
             }
         }
 
-        private void showFirstChild() {
-
+        private void onRemoveAnimationEnd() {
+            //showLastViewContent();
         }
 
-        private void removeFirstChild() {
+        private void onAddAnimationEnd() {
             if (getChildCount() > MAX_CARD_VIEW) {
                 DialogAnimationLayout.this.removeFirstChild();
             }

@@ -3,6 +3,7 @@ package com.example.zhangchong.myapplication;
 import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -28,6 +29,9 @@ public class AnimationActivity extends AppCompatActivity {
         removeView();
     }
 
+    public void randomRemove(View view){
+        remove();
+    }
 
 
     private View newView() {
@@ -59,5 +63,11 @@ public class AnimationActivity extends AppCompatActivity {
 
     private void removeView(){
         mLayout.removeNewChild();
+    }
+
+    private void remove(){
+        int index = (int) (Math.random() * mLayout.getPackageViews().size());
+        Log.e("msg", " remove index:" + index);
+        mLayout.removeChildAtIndex(index);
     }
 }
