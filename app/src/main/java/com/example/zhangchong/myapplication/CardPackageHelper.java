@@ -129,15 +129,22 @@ public class CardPackageHelper {
 
             //两边padding最终是diff-1 * paddingstep*2
             //公式 目标数值 = 当前值 + (目标值 - 当前值) * percent
-            int left = (int)(tag.getOriginalPaddingLeft() + ((diff - 1) * paddingStep * 2 - tag.getOriginalPaddingLeft())*value);
+            int oLeft = tag.getOriginalPaddingLeft();
+            oLeft = oLeft < 0 ? diff * paddingStep * 2 : oLeft;
+            int left = (int)(oLeft + ((diff - 1) * paddingStep * 2 - oLeft)*value);
             int right = left;
-            int bottom = (int)(tag.getOriginalPaddingBottom() + ((diff - 1) * paddingStep - tag.getOriginalPaddingBottom())*value);
+
+            int oBottom = tag.getOriginalPaddingBottom();
+            oBottom = oBottom < 0 ? diff * paddingStep * 2 : oBottom;
+            int bottom = (int)(oBottom + ((diff - 1) * paddingStep - oBottom)*value);
 
 
             int top = (int) ((index - 1) * paddingStep + paddingStep * value);
             if (max < DialogAnimationLayout.MAX_CARD_VIEW) {
                 //小于3个卡片.不移动paddingtop
-                top = (int)(tag.getOriginalPaddingTop() + (index * paddingStep - tag.getOriginalPaddingTop())*value);
+                int oTop = tag.getOriginalPaddingTop();
+                oTop = oTop < 0 ? 0 : oTop;
+                top = (int)(oTop + (index * paddingStep - oTop)*value);
             }
             Log.e("msg", "index:" + index + ", l,t,r,b:"
                 + left

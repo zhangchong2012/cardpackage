@@ -10,10 +10,10 @@ public class CardViewTag {
     //最初的高度
     private int originalHeight;
 
-    private int originalPaddingBottom;
-    private int originalPaddingRight;
-    private int originalPaddingLeft;
-    private int originalPaddingTop;
+    private int originalPaddingBottom = -1;
+    private int originalPaddingRight = -1;
+    private int originalPaddingLeft = -1;
+    private int originalPaddingTop = -1;
 
     private int mRemoveIndex;
 
